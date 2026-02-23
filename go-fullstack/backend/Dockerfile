@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     main.go
 
 # Final stage - use Alpine for minimal but functional image
-FROM alpine:3.19
+FROM alpine:3.20
 
 # Install CA certificates and timezone data
 RUN apk add --no-cache ca-certificates tzdata
