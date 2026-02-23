@@ -52,6 +52,60 @@ async function initialize() {
   }
 }
 
+// Root route
+app.get('/', (req: Request, res: Response) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locus Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 640px; width: 100%; padding: 2rem; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; margin-bottom: 2rem; }
+    .card { background: #161616; border: 1px solid #262626; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; color: #a3a3a3; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+    .endpoint { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #222; }
+    .endpoint:last-child { border-bottom: none; }
+    .method { background: #1a3a2a; color: #4ade80; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-family: monospace; font-weight: 600; }
+    .method.post { background: #1a2a3a; color: #60a5fa; }
+    .method.put { background: #2a2a1a; color: #facc15; }
+    .method.del { background: #2a1a1a; color: #f87171; }
+    .path { font-family: monospace; color: #d4d4d4; }
+    .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; }
+    .status.ok { background: #052e16; color: #4ade80; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .footer { text-align: center; margin-top: 2rem; color: #525252; font-size: 0.85rem; }
+    a { color: #60a5fa; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Locus Demo App</h1>
+    <p class="subtitle">TypeScript full-stack application deployed on <a href="https://github.com/wjorgensen/locus-test-apps">Locus</a></p>
+    <div class="card">
+      <h2>Status</h2>
+      <span class="status ok"><span class="dot"></span> Operational</span>
+    </div>
+    <div class="card">
+      <h2>API Endpoints</h2>
+      <div class="endpoint"><span class="method">GET</span> <span class="path">/health</span></div>
+      <div class="endpoint"><span class="method">GET</span> <span class="path">/api/todos</span></div>
+      <div class="endpoint"><span class="method post">POST</span> <span class="path">/api/todos</span></div>
+      <div class="endpoint"><span class="method put">PUT</span> <span class="path">/api/todos/:id</span></div>
+      <div class="endpoint"><span class="method del">DEL</span> <span class="path">/api/todos/:id</span></div>
+      <div class="endpoint"><span class="method">GET</span> <span class="path">/api/stats</span></div>
+    </div>
+    <p class="footer">Powered by Locus Platform</p>
+  </div>
+</body>
+</html>`);
+});
+
 // Health check endpoint
 app.get('/health', async (req: Request, res: Response) => {
   try {
