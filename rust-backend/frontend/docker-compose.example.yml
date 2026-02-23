@@ -1,0 +1,62 @@
+# Example Docker Compose Configuration
+# This file shows how to run the frontend with the backend
+# Copy this to the parent directory and rename to docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Rust Backend API
+  backend:
+    build: ../backend
+    container_name: todo-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=postgresql://postgres:password@db:5432/todos
+    depends_on:
+      - db
+    networks:
+      - todo-network
+
+  # Static Frontend
+  frontend:
+    build: .
+    container_name: todo-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Backend URL from container's perspective
+      - API_BASE_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: todo-db
+    environment:
+      - POSTGRES_DB=todos
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+# Usage:
+# 1. Copy this file to parent directory: cp docker-compose.example.yml ../docker-compose.yml
+# 2. cd ..
+# 3. docker-compose up -d
+# 4. Visit http://localhost:3000

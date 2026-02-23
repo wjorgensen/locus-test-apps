@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Modern Todo List Application">
+    <title>Todo List</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>Todo List</h1>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">Connecting...</span>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="todo-input-section">
+                <form id="todoForm" class="todo-form">
+                    <input
+                        type="text"
+                        id="todoInput"
+                        class="todo-input"
+                        placeholder="What needs to be done?"
+                        required
+                        autocomplete="off"
+                        aria-label="New todo item"
+                    >
+                    <button type="submit" class="btn btn-primary">
+                        <span>Add Todo</span>
+                    </button>
+                </form>
+            </section>
+
+            <section class="todo-list-section">
+                <div class="todo-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                </div>
+
+                <div id="todoList" class="todo-list" role="list">
+                    <!-- Todos will be inserted here -->
+                </div>
+
+                <div id="emptyState" class="empty-state">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                    </svg>
+                    <p>No todos yet. Add one above to get started!</p>
+                </div>
+
+                <div id="errorState" class="error-state hidden">
+                    <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p id="errorMessage">Failed to connect to backend</p>
+                    <button class="btn btn-secondary" id="retryBtn">Retry</button>
+                </div>
+
+                <div id="loadingState" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading todos...</p>
+                </div>
+            </section>
+
+            <footer class="todo-footer">
+                <div class="todo-count">
+                    <span id="todoCount">0</span> items left
+                </div>
+                <button id="clearCompleted" class="btn-text">Clear completed</button>
+            </footer>
+        </main>
+    </div>
+
+    <script type="module" src="/js/config.js"></script>
+    <script type="module" src="/js/api.js"></script>
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
