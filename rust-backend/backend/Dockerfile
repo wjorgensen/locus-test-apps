@@ -1,5 +1,5 @@
-# Build stage
-FROM rust:1.75-slim as builder
+# Build stage - use latest stable with edition2024 support
+FROM rust:latest as builder
 
 WORKDIR /app
 
@@ -8,21 +8,14 @@ RUN apt-get update && \
     apt-get install -y pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy manifests
-COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
+# Copy manifests (Cargo.lock is optional)
+COPY Cargo.* ./
 
 # Copy source code
 COPY src ./src
 
-# Build the application
-RUN touch src/main.rs && \
-    cargo build --release
+# Build the application (single-stage build is more reliable)
+RUN cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim

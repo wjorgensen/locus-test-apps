@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode, Json};
 use serde::Serialize;
 
-use crate::{cache::CacheClient, db, error::Result, AppState};
+use crate::{db, error::Result, AppState};
 
 #[derive(Serialize)]
 pub struct HealthResponse {

@@ -51,7 +51,7 @@ impl CacheClient {
 
         if !keys.is_empty() {
             // Delete all matching keys
-            conn.del(keys).await.map_err(AppError::Redis)?;
+            conn.del::<_, ()>(keys).await.map_err(AppError::Redis)?;
         }
 
         Ok(())
