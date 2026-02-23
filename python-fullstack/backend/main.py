@@ -115,11 +115,16 @@ class TodoResponse(BaseModel):
         from_attributes = True
 
 
+class ServiceHealth(BaseModel):
+    """Schema for service health status."""
+    connected: bool
+
+
 class HealthResponse(BaseModel):
     """Schema for health check response."""
     status: str
-    database: str
-    redis: str
+    database: ServiceHealth
+    redis: ServiceHealth
     timestamp: str
 
 
@@ -134,15 +139,13 @@ class StatsResponse(BaseModel):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint that verifies DB and Redis connectivity."""
-    db_status = "healthy" if await check_db_health() else "unhealthy"
-    redis_status = "healthy" if await check_redis_health() else "unhealthy"
-
-    overall_status = "healthy" if db_status == "healthy" and redis_status == "healthy" else "unhealthy"
+    db_connected = await check_db_health()
+    redis_connected = await check_redis_health()
 
     return HealthResponse(
-        status=overall_status,
-        database=db_status,
-        redis=redis_status,
+        status="ok" if (db_connected and redis_connected) else "error",
+        database=ServiceHealth(connected=db_connected),
+        redis=ServiceHealth(connected=redis_connected),
         timestamp=datetime.utcnow().isoformat(),
     )
 

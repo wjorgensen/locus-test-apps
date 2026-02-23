@@ -4,33 +4,37 @@ use serde::Serialize;
 use crate::{db, error::Result, AppState};
 
 #[derive(Serialize)]
+pub struct ServiceHealth {
+    pub connected: bool,
+}
+
+#[derive(Serialize)]
 pub struct HealthResponse {
     pub status: String,
-    pub database: String,
-    pub redis: String,
+    pub database: ServiceHealth,
+    pub redis: ServiceHealth,
+    pub timestamp: String,
 }
 
 pub async fn health_check(State(state): State<AppState>) -> Result<Json<HealthResponse>> {
-    let db_status = match db::check_connection(&state.db).await {
-        Ok(_) => "healthy".to_string(),
-        Err(e) => format!("unhealthy: {}", e),
-    };
+    let db_connected = db::check_connection(&state.db).await.is_ok();
+    let redis_connected = state.cache.check_connection().await.is_ok();
 
-    let redis_status = match state.cache.check_connection().await {
-        Ok(_) => "healthy".to_string(),
-        Err(e) => format!("unhealthy: {}", e),
-    };
-
-    let overall_status = if db_status == "healthy" && redis_status == "healthy" {
-        "healthy"
+    let overall_status = if db_connected && redis_connected {
+        "ok"
     } else {
-        "unhealthy"
+        "error"
     };
 
     Ok(Json(HealthResponse {
         status: overall_status.to_string(),
-        database: db_status,
-        redis: redis_status,
+        database: ServiceHealth {
+            connected: db_connected,
+        },
+        redis: ServiceHealth {
+            connected: redis_connected,
+        },
+        timestamp: chrono::Utc::now().to_rfc3339(),
     }))
 }
 

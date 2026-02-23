@@ -12,9 +12,14 @@ import (
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
-	Status   string            `json:"status"`
-	Services map[string]string `json:"services"`
-	Time     string            `json:"time"`
+	Status    string           `json:"status"`
+	Timestamp string           `json:"timestamp"`
+	Database  ServiceHealth    `json:"database"`
+	Redis     ServiceHealth    `json:"redis"`
+}
+
+type ServiceHealth struct {
+	Connected bool `json:"connected"`
 }
 
 // HealthCheck handles GET /health
@@ -23,31 +28,25 @@ func HealthCheck(c *gin.Context) {
 	defer cancel()
 
 	response := HealthResponse{
-		Status: "healthy",
-		Services: map[string]string{
-			"database": "unknown",
-			"redis":    "unknown",
-		},
-		Time: time.Now().UTC().Format(time.RFC3339),
+		Status:    "ok",
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Database:  ServiceHealth{Connected: false},
+		Redis:     ServiceHealth{Connected: false},
 	}
 
 	// Check database
 	if err := database.Ping(ctx); err != nil {
-		response.Services["database"] = "unhealthy"
-		response.Status = "unhealthy"
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}
-	response.Services["database"] = "healthy"
+	response.Database.Connected = true
 
 	// Check Redis
 	if err := cache.Ping(ctx); err != nil {
-		response.Services["redis"] = "unhealthy"
-		response.Status = "unhealthy"
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}
-	response.Services["redis"] = "healthy"
+	response.Redis.Connected = true
 
 	c.JSON(http.StatusOK, response)
 }
