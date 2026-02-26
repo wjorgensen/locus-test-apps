@@ -31,8 +31,7 @@ func ListTodos(c *gin.Context) {
 	if err == nil {
 		var todos []models.Todo
 		if err := json.Unmarshal([]byte(cached), &todos); err == nil {
-			c.Header("X-Cache", "HIT")
-			c.JSON(http.StatusOK, todos)
+			c.JSON(http.StatusOK, gin.H{"data": todos, "cached": true})
 			return
 		}
 	}
@@ -66,8 +65,7 @@ func ListTodos(c *gin.Context) {
 		cache.Client.Set(ctx, todoCacheKey, data, todoCacheTTL)
 	}
 
-	c.Header("X-Cache", "MISS")
-	c.JSON(http.StatusOK, todos)
+	c.JSON(http.StatusOK, gin.H{"data": todos, "cached": false})
 }
 
 // GetTodo handles GET /api/todos/:id
@@ -230,7 +228,7 @@ func DeleteTodo(c *gin.Context) {
 	// Invalidate cache
 	cache.Client.Del(ctx, todoCacheKey)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Todo deleted successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 // Helper function to join update clauses

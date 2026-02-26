@@ -43,6 +43,11 @@ impl CacheClient {
         conn.del(key).await.map_err(AppError::Redis)
     }
 
+    pub async fn incr(&self, key: &str) -> Result<i64> {
+        let mut conn = self.manager.clone();
+        conn.incr(key, 1i64).await.map_err(AppError::Redis)
+    }
+
     pub async fn invalidate_pattern(&self, pattern: &str) -> Result<()> {
         let mut conn = self.manager.clone();
 

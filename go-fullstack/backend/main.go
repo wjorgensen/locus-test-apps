@@ -93,6 +93,10 @@ func setupRouter() *gin.Engine {
 	// API routes
 	api := router.Group("/api")
 	{
+		// Connectivity checks
+		api.GET("/db-check", handlers.DbCheck)
+		api.GET("/redis-check", handlers.RedisCheck)
+
 		// Todo routes
 		api.GET("/todos", handlers.ListTodos)
 		api.GET("/todos/:id", handlers.GetTodo)

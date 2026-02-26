@@ -78,6 +78,9 @@ async fn main() -> anyhow::Result<()> {
         // Health checks
         .route("/health", get(handlers::health_check))
         .route("/ready", get(handlers::ready_check))
+        // Connectivity checks
+        .route("/api/db-check", get(handlers::db_check))
+        .route("/api/redis-check", get(handlers::redis_check))
         // API routes
         .route("/api/todos", get(handlers::list_todos))
         .route("/api/todos", post(handlers::create_todo))

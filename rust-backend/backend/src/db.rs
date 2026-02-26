@@ -129,6 +129,13 @@ pub async fn delete_todo(pool: &DbPool, id: Uuid) -> Result<()> {
     Ok(())
 }
 
+pub async fn get_total_todo_count(pool: &DbPool) -> Result<i64> {
+    let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM todos")
+        .fetch_one(pool)
+        .await?;
+    Ok(count)
+}
+
 pub async fn get_todo_stats(pool: &DbPool) -> Result<TodoStats> {
     let stats = sqlx::query_as::<_, TodoStats>(
         r#"

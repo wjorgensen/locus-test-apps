@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -12,12 +13,18 @@ use crate::{
 const CACHE_KEY: &str = "todos:list";
 const CACHE_TTL: u64 = 60; // 60 seconds
 
-pub async fn list_todos(State(state): State<AppState>) -> Result<Json<Vec<Todo>>> {
+#[derive(Serialize)]
+pub struct TodoListResponse {
+    pub data: Vec<Todo>,
+    pub cached: bool,
+}
+
+pub async fn list_todos(State(state): State<AppState>) -> Result<Json<TodoListResponse>> {
     // Try to get from cache
     if let Ok(Some(cached)) = state.cache.get(CACHE_KEY).await {
         if let Ok(todos) = serde_json::from_str::<Vec<Todo>>(&cached) {
             tracing::debug!("Returning cached todos list");
-            return Ok(Json(todos));
+            return Ok(Json(TodoListResponse { data: todos, cached: true }));
         }
     }
 
@@ -30,7 +37,7 @@ pub async fn list_todos(State(state): State<AppState>) -> Result<Json<Vec<Todo>>
         tracing::debug!("Cached todos list for {} seconds", CACHE_TTL);
     }
 
-    Ok(Json(todos))
+    Ok(Json(TodoListResponse { data: todos, cached: false }))
 }
 
 pub async fn get_todo(

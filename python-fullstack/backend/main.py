@@ -3,17 +3,19 @@ import logging
 import os
 import signal
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from typing import List, Optional
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 
-from database import get_db, init_db, check_db_health, close_db
+from database import get_db, init_db, check_db_health, close_db, engine
 from redis_client import (
     check_redis_health,
     close_redis,
@@ -21,6 +23,7 @@ from redis_client import (
     set_cached,
     delete_cached,
     clear_pattern,
+    get_redis,
 )
 from models import Todo
 
@@ -32,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Environment variables
-PORT = int(os.getenv("PORT", "8000"))
+PORT = int(os.getenv("PORT", "8080"))
 
 # Graceful shutdown handling
 shutdown_event = asyncio.Event()
@@ -128,13 +131,6 @@ class HealthResponse(BaseModel):
     timestamp: str
 
 
-class StatsResponse(BaseModel):
-    """Schema for statistics response."""
-    total: int
-    completed: int
-    pending: int
-
-
 # Health check endpoint
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -150,8 +146,60 @@ async def health_check():
     )
 
 
+# Database connectivity check
+@app.get("/api/db-check")
+async def db_check():
+    """Database connectivity check."""
+    try:
+        start = time.time()
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT current_database(), current_user, version()"))
+            row = result.fetchone()
+        latency = int((time.time() - start) * 1000)
+
+        return {
+            "connected": True,
+            "latency": latency,
+            "database": row[0],
+            "user": row[1],
+            "version": " ".join(row[2].split(" ")[:2]),
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"connected": False, "error": str(e)},
+        )
+
+
+# Redis connectivity check
+@app.get("/api/redis-check")
+async def redis_check():
+    """Redis connectivity check."""
+    try:
+        client = await get_redis()
+        start = time.time()
+        ping = await client.ping()
+        latency = int((time.time() - start) * 1000)
+
+        # Test SET/GET
+        await client.set("health-check", "ok")
+        value = await client.get("health-check")
+
+        return {
+            "connected": True,
+            "ping": "PONG" if ping else "FAIL",
+            "latency": latency,
+            "setGetWorks": value == "ok",
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"connected": False, "error": str(e)},
+        )
+
+
 # Todo CRUD endpoints
-@app.get("/api/todos", response_model=List[TodoResponse])
+@app.get("/api/todos")
 async def list_todos(db: AsyncSession = Depends(get_db)):
     """List all todos with caching (60 seconds TTL)."""
     cache_key = "todos:list"
@@ -160,7 +208,7 @@ async def list_todos(db: AsyncSession = Depends(get_db)):
     cached = await get_cached(cache_key)
     if cached is not None:
         logger.info("Returning cached todos")
-        return cached
+        return {"data": cached, "cached": True}
 
     # Query from database
     try:
@@ -172,7 +220,7 @@ async def list_todos(db: AsyncSession = Depends(get_db)):
         await set_cached(cache_key, response, ttl=60)
 
         logger.info(f"Fetched {len(response)} todos from database")
-        return response
+        return {"data": response, "cached": False}
     except Exception as e:
         logger.error(f"Failed to list todos: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list todos: {str(e)}")
@@ -273,38 +321,23 @@ async def delete_todo(todo_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to delete todo: {str(e)}")
 
 
-@app.get("/api/stats", response_model=StatsResponse)
+@app.get("/api/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
     """Get statistics about todos."""
-    cache_key = "todos:stats"
-
-    # Try to get from cache
-    cached = await get_cached(cache_key)
-    if cached is not None:
-        logger.info("Returning cached stats")
-        return cached
-
     try:
+        # Increment page view counter in Redis
+        client = await get_redis()
+        await client.incr("stats:page-views")
+        page_views = await client.get("stats:page-views")
+
         # Get total count
         total_result = await db.execute(select(func.count()).select_from(Todo))
-        total = total_result.scalar() or 0
+        total_todos = total_result.scalar() or 0
 
-        # Get completed count
-        completed_result = await db.execute(
-            select(func.count()).select_from(Todo).where(Todo.completed == True)
-        )
-        completed = completed_result.scalar() or 0
-
-        # Calculate pending
-        pending = total - completed
-
-        response = StatsResponse(total=total, completed=completed, pending=pending)
-
-        # Cache for 60 seconds
-        await set_cached(cache_key, response.model_dump(), ttl=60)
-
-        logger.info(f"Stats: {total} total, {completed} completed, {pending} pending")
-        return response
+        return {
+            "pageViews": int(page_views or 0),
+            "totalTodos": total_todos,
+        }
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
